@@ -50,6 +50,7 @@ BR1_DECISIONS = ("REFINE", "IDENTITY_FALLBACK")
 RESPONSE_DECISIONS = BR1_DECISIONS
 _WINDOW_TOLERANCE_SEC = 1e-9
 _IDENTITY_TOLERANCE_SEC = 1e-9
+_DURATION_TOLERANCE_SEC = 1e-6
 _BOUNDARY_PROMPT_VERSION = "boundary_local_context_v0_draft"
 _MAX_BOUNDARY_REASON_CHARS = 400
 _MAX_RAW_RESPONSE_CHARS = 2000
@@ -260,7 +261,7 @@ def assess_event_identity(
     interval_valid = (
         0.0 <= refined_start
         and refined_start < refined_end
-        and refined_end <= float(duration_sec) + _WINDOW_TOLERANCE_SEC
+        and refined_end <= float(duration_sec) + _DURATION_TOLERANCE_SEC
     )
     within_window = (
         refined_start >= float(window["start_sec"]) - _WINDOW_TOLERANCE_SEC
@@ -420,7 +421,11 @@ def refine_candidates(
             raise BoundaryRefinementError("candidate is missing merged_candidate_id")
         original_start = float(candidate["start_sec"])
         original_end = float(candidate["end_sec"])
-        if not 0.0 <= original_start < original_end <= float(duration_sec):
+        if not (
+            0.0 <= original_start
+            and original_start < original_end
+            and original_end <= float(duration_sec) + _DURATION_TOLERANCE_SEC
+        ):
             raise BoundaryRefinementError(
                 f"candidate interval violates duration for {candidate['merged_candidate_id']}"
             )
