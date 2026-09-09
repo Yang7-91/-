@@ -1,0 +1,51 @@
+{
+  "schema_version": "aic.stage4.sabr1_protocol/v1",
+  "stage": "Stage 4-new",
+  "method": "SABR-1",
+  "name": "Shot-aware Saliency Anchored Boundary Refinement",
+  "dataset": "aic_highlight_dev_v1.1",
+  "frozen_upstream": {
+    "source": "Stage 4.2 cache_build_a",
+    "allowed_splits": ["dev"],
+    "heldout_access": false,
+    "qwen_calls_allowed": false,
+    "vllm_calls_allowed": false,
+    "training_allowed": false
+  },
+  "feature_extraction": {
+    "bin_sec": 1.0,
+    "frames_per_bin": 2,
+    "signals": [
+      "frame_difference",
+      "histogram_difference",
+      "laplacian_variance",
+      "edge_density",
+      "saturation",
+      "contrast"
+    ],
+    "normalization": "per-video robust z-score and rank",
+    "deterministic": true
+  },
+  "saliency_score_weights": {
+    "frame_difference": 0.30,
+    "histogram_difference": 0.20,
+    "laplacian_variance": 0.15,
+    "edge_density": 0.10,
+    "saturation": 0.10,
+    "contrast": 0.15
+  },
+  "safety": {
+    "this_phase_changes_boundaries": false,
+    "identity_fallback_required": true,
+    "no_heldout": true,
+    "no_audit_tuning": true,
+    "no_qwen": true,
+    "no_vllm": true
+  },
+  "future_gate": {
+    "dev_recall_drop_min": -0.01,
+    "no_new_zero_recall": true,
+    "precision_delta_target": 0.01,
+    "f1_or_tiou_delta_target": 0.005
+  }
+}
