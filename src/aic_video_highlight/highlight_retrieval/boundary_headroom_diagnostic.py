@@ -36,11 +36,32 @@ def _all_finite(values: Iterable[float]) -> bool:
     return all(math.isfinite(v) for v in values)
 
 
+def _merge_intervals(segments: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Merge overlapping/adjacent intervals; prevents double counting when
+    oracle variants overlap (deployment would merge them too)."""
+    ordered = sorted((s, e) for s, e in segments if e > s)
+    merged: list[tuple[float, float]] = []
+    for start, end in ordered:
+        if merged and start <= merged[-1][1] + _EPS:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
 def evaluate_video_merged(
-    segments: list[tuple[float, float]], references: list[tuple[float, float]]
+    segments: list[tuple[float, float]],
+    references: list[tuple[float, float]],
+    *,
+    merge_predicted: bool = True,
 ) -> dict[str, float]:
-    """Merged per-video duration metrics (same semantics as Stage 4.4 evaluate)."""
-    predicted = [(s, e) for s, e in segments if e > s]
+    """Merged per-video duration metrics (same semantics as Stage 4.4 evaluate).
+
+    ``merge_predicted`` unions overlapping predicted intervals so that oracle
+    variants which overlap each other cannot inflate intersection counts.
+    """
+    predicted_raw = [(s, e) for s, e in segments if e > s]
+    predicted = _merge_intervals(predicted_raw) if merge_predicted else predicted_raw
     references = [(s, e) for s, e in references if e > s]
     pred_dur = sum(e - s for s, e in predicted)
     ref_dur = sum(e - s for s, e in references)
