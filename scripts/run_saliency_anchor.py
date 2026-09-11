@@ -22,6 +22,7 @@ from aic_video_highlight.highlight_retrieval.boundary_refinement import (  # noq
 )
 from aic_video_highlight.highlight_retrieval.candidate_selection import (  # noqa: E402
     _read_json_object,
+    canonical_json_bytes,
     validate_role_manifest_directory,
 )
 from aic_video_highlight.highlight_retrieval.saliency_anchor import (  # noqa: E402
@@ -169,9 +170,7 @@ def _cmd_propose(args) -> int:
     validate_boundary_refinement_payload(result, manifest, role_manifest, records)
 
     result_path = output_dir / "refinement_result.json"
-    result_path.write_text(
-        json.dumps(result, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8"
-    )
+    result_path.write_bytes(canonical_json_bytes(result))
 
     flat_rows = []
     for record_item in result["records"]:
