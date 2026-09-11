@@ -1,0 +1,96 @@
+{
+  "schema_version": "aic.stage4.br2_asymmetric_boundary/v1",
+  "stage": "Stage 4-new",
+  "method": "BR-2",
+  "name": "Asymmetric Local Evidence Boundary Refinement",
+  "dataset": "aic_highlight_dev_v1.1",
+  "role": "dev_tune",
+  "purpose": "dev_only_boundary_refinement_experiment",
+  "frozen_upstream": {
+    "source": "Stage 4.2 cache_build_a",
+    "heldout_access": false,
+    "qwen_calls_allowed": false,
+    "vllm_calls_allowed": false,
+    "training_allowed": false
+  },
+  "principles": {
+    "left_right_independent": true,
+    "actions": ["TRIM", "KEEP", "EXPAND"],
+    "identity_fallback_required": true,
+    "no_oracle_boundary_selection": true,
+    "no_model_calls": true
+  },
+  "local_evidence": {
+    "boundary_window_sec": 4.0,
+    "sample_stride_sec": 0.5,
+    "persistence_k": 3,
+    "signals": [
+      "frame_difference",
+      "histogram_difference",
+      "edge_density",
+      "contrast",
+      "local_motion_proxy",
+      "core_similarity_histogram"
+    ],
+    "normalization": "candidate_local_robust_z_and_rank",
+    "deterministic": true
+  },
+  "safety": {
+    "max_trim_each_side_sec": 3.0,
+    "max_expand_each_side_sec": 2.0,
+    "max_total_boundary_change_ratio": 0.25,
+    "min_refined_duration_sec": 4.0,
+    "min_parent_overlap_ratio": 0.70,
+    "low_confidence_action": "KEEP",
+    "invalid_action": "IDENTITY"
+  },
+  "configs": {
+    "BR-2-C1": {
+      "boundary_window_sec": 4.0,
+      "sample_stride_sec": 0.5,
+      "persistence_k": 3,
+      "action_confidence_min": 0.70,
+      "trim_margin_sec": 0.5,
+      "expand_margin_sec": 0.5,
+      "max_trim_each_side_sec": 2.0,
+      "max_expand_each_side_sec": 1.0,
+      "max_total_boundary_change_ratio": 0.20,
+      "min_parent_overlap_ratio": 0.80,
+      "min_refined_duration_sec": 5.0
+    },
+    "BR-2-C2": {
+      "boundary_window_sec": 5.0,
+      "sample_stride_sec": 0.5,
+      "persistence_k": 3,
+      "action_confidence_min": 0.65,
+      "trim_margin_sec": 0.5,
+      "expand_margin_sec": 0.5,
+      "max_trim_each_side_sec": 3.0,
+      "max_expand_each_side_sec": 1.5,
+      "max_total_boundary_change_ratio": 0.25,
+      "min_parent_overlap_ratio": 0.75,
+      "min_refined_duration_sec": 4.0
+    },
+    "BR-2-C3": {
+      "boundary_window_sec": 6.0,
+      "sample_stride_sec": 0.75,
+      "persistence_k": 4,
+      "action_confidence_min": 0.70,
+      "trim_margin_sec": 1.0,
+      "expand_margin_sec": 0.5,
+      "max_trim_each_side_sec": 3.0,
+      "max_expand_each_side_sec": 2.0,
+      "max_total_boundary_change_ratio": 0.25,
+      "min_parent_overlap_ratio": 0.70,
+      "min_refined_duration_sec": 5.0
+    }
+  },
+  "promotion_gate": {
+    "recall_delta_min": -0.01,
+    "new_zero_recall_allowed": 0,
+    "new_recall_lt_0_5_allowed": 1,
+    "precision_delta_min": 0.005,
+    "f1_or_tiou_delta_min": 0.003,
+    "coverage_delta_max": 0.005
+  }
+}

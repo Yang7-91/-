@@ -705,6 +705,52 @@ def _validate_sabr_trim(
         )
 
 
+def _validate_br2_asymmetric(
+    detail: Mapping[str, Any],
+    refined_start: float,
+    refined_end: float,
+    original_start: float,
+    original_end: float,
+    duration: float,
+    parameters: Mapping[str, Any],
+    video_id: Any,
+    candidate_id: str,
+) -> None:
+    """BR-2 guard: bounded trim/expand per side, ratio caps, duration floors."""
+    left_delta = _finite_number(detail.get("left_delta_sec"), "left_delta_sec")
+    right_delta = _finite_number(detail.get("right_delta_sec"), "right_delta_sec")
+    if abs((refined_start - original_start) - left_delta) > _IDENTITY_TOLERANCE_SEC or abs(
+        (original_end - refined_end) - right_delta
+    ) > _IDENTITY_TOLERANCE_SEC:
+        raise BoundaryRefinementError(
+            f"BR-2 deltas inconsistent with refined interval for {video_id}/{candidate_id}"
+        )
+    max_trim = _finite_number(parameters.get("max_trim_each_side_sec"), "max_trim_each_side_sec")
+    max_expand = _finite_number(parameters.get("max_expand_each_side_sec"), "max_expand_each_side_sec")
+    if left_delta > max_trim + _IDENTITY_TOLERANCE_SEC or right_delta > max_trim + _IDENTITY_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 trim exceeds cap for {video_id}/{candidate_id}")
+    if -left_delta > max_expand + _IDENTITY_TOLERANCE_SEC or -right_delta > max_expand + _IDENTITY_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 expand exceeds cap for {video_id}/{candidate_id}")
+    original_duration = original_end - original_start
+    refined_duration = refined_end - refined_start
+    if original_duration <= 0 or refined_duration <= 0:
+        raise BoundaryRefinementError(f"BR-2 nonpositive duration for {video_id}/{candidate_id}")
+    change_ratio = (abs(left_delta) + abs(right_delta)) / original_duration
+    max_change = _finite_number(
+        parameters.get("max_total_boundary_change_ratio"), "max_total_boundary_change_ratio"
+    )
+    if change_ratio > max_change + _IDENTITY_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 boundary change ratio exceeds cap for {video_id}/{candidate_id}")
+    min_refined = _finite_number(parameters.get("min_refined_duration_sec"), "min_refined_duration_sec")
+    if refined_duration < min_refined - _DURATION_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 refined duration below minimum for {video_id}/{candidate_id}")
+    min_overlap = _finite_number(parameters.get("min_parent_overlap_ratio"), "min_parent_overlap_ratio")
+    if refined_duration / original_duration < min_overlap - _IDENTITY_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 parent overlap below floor for {video_id}/{candidate_id}")
+    if refined_start < -_DURATION_TOLERANCE_SEC or refined_end > duration + _DURATION_TOLERANCE_SEC:
+        raise BoundaryRefinementError(f"BR-2 refined interval outside video for {video_id}/{candidate_id}")
+
+
 def validate_boundary_refinement_payload(
     result: Mapping[str, Any],
     cache_manifest: Mapping[str, Any],
@@ -730,15 +776,24 @@ def validate_boundary_refinement_payload(
         "role_manifest_hash"
     ) != role_manifest.get("semantic_sha256"):
         raise BoundaryRefinementError("boundary result role mismatch")
-    is_sabr = str(result.get("refiner_name", "")).startswith("SABR-1.1")
+    refiner_name_str = str(result.get("refiner_name", ""))
+    is_sabr = refiner_name_str.startswith("SABR-1.1")
+    is_br2 = refiner_name_str.startswith("BR-2")
     if result.get("refiner_config_hash") != semantic_sha256(result.get("refiner_config")):
         raise BoundaryRefinementError("boundary result config hash mismatch")
     if is_sabr:
         from .sabr_boundary import SABR_REFINER_VERSION
 
-        name = str(result.get("refiner_name"))
+        name = refiner_name_str
         parameters = dict(result.get("refiner_config") or {})
         if result.get("refiner_version") != SABR_REFINER_VERSION:
+            raise BoundaryRefinementError("boundary result refiner version mismatch")
+    elif is_br2:
+        from .br2_asymmetric_boundary import BR2_REFINER_VERSION
+
+        name = refiner_name_str
+        parameters = dict(result.get("refiner_config") or {})
+        if result.get("refiner_version") != BR2_REFINER_VERSION:
             raise BoundaryRefinementError("boundary result refiner version mismatch")
     else:
         name, parameters = _validate_refiner_config(result.get("refiner_config"))
@@ -840,6 +895,33 @@ def validate_boundary_refinement_payload(
                     )
                 else:
                     raise BoundaryRefinementError(f"unknown SABR decision for {video_id}")
+            elif is_br2:
+                detail = refinement.get("decision_detail")
+                if not isinstance(detail, Mapping):
+                    raise BoundaryRefinementError(
+                        f"BR-2 decision_detail missing for {video_id}/{candidate_id}"
+                    )
+                rule = str(refinement.get("decision_rule", ""))
+                if decision == "IDENTITY":
+                    _require_same_interval(refined_start, refined_end, original_start, original_end, video_id, candidate_id, decision)
+                    if rule != "br2.identity" or detail.get("action") != "identity":
+                        raise BoundaryRefinementError(f"BR-2 identity rule mismatch for {video_id}/{candidate_id}")
+                elif decision == "IDENTITY_FALLBACK":
+                    _require_same_interval(refined_start, refined_end, original_start, original_end, video_id, candidate_id, decision)
+                    if rule != "br2.fallback" or detail.get("action") != "fallback_identity":
+                        raise BoundaryRefinementError(f"BR-2 fallback rule mismatch for {video_id}/{candidate_id}")
+                    if not str(detail.get("fallback_reason") or "").strip():
+                        raise BoundaryRefinementError(f"BR-2 fallback reason missing for {video_id}/{candidate_id}")
+                elif decision == "REFINE":
+                    if rule != "br2.asymmetric_refine" or detail.get("action") != "asymmetric_refine":
+                        raise BoundaryRefinementError(f"BR-2 refine rule mismatch for {video_id}/{candidate_id}")
+                    _validate_br2_asymmetric(
+                        detail, refined_start, refined_end,
+                        original_start, original_end, duration, parameters,
+                        video_id, candidate_id,
+                    )
+                else:
+                    raise BoundaryRefinementError(f"unknown BR-2 decision for {video_id}")
             elif decision == BR0_DECISION or decision == "IDENTITY_FALLBACK":
                 if (
                     abs(refined_start - original_start) > _IDENTITY_TOLERANCE_SEC
@@ -881,7 +963,7 @@ def validate_boundary_refinement_payload(
                     )
                 if refinement.get("decision_rule") != "br1.model_refine":
                     raise BoundaryRefinementError(f"REFINE rule mismatch for {video_id}")
-            if not is_sabr and decision == "IDENTITY_FALLBACK":
+            if not (is_sabr or is_br2) and decision == "IDENTITY_FALLBACK":
                 rule = str(refinement.get("decision_rule", ""))
                 if not rule.startswith("br1.fallback"):
                     raise BoundaryRefinementError(
