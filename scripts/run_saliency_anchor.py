@@ -34,6 +34,7 @@ from aic_video_highlight.highlight_retrieval.saliency_anchor import (  # noqa: E
 )
 from aic_video_highlight.highlight_retrieval.sabr_boundary import (  # noqa: E402
     build_sabr11_result,
+    propose_conservative_boundary,
 )
 from aic_video_highlight.highlight_retrieval.boundary_refinement import (  # noqa: E402
     validate_boundary_refinement_payload,
