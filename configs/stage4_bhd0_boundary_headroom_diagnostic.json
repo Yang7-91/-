@@ -1,0 +1,60 @@
+{
+  "schema_version": "aic.stage4.bhd0_boundary_headroom_diagnostic/v1",
+  "stage": "Stage 4-new",
+  "method": "BHD-0",
+  "name": "Boundary Headroom and Signal Separability Diagnostic",
+  "dataset": "aic_highlight_dev_v1.1",
+  "role": "dev_tune",
+  "purpose": "diagnostic_only_not_deployable",
+  "frozen_upstream": {
+    "source": "Stage 4.2 cache_build_a",
+    "heldout_access": false,
+    "hard_access": false,
+    "qwen_calls_allowed": false,
+    "vllm_calls_allowed": false,
+    "training_allowed": false
+  },
+  "oracle_diagnostics": {
+    "uses_weak_reference": true,
+    "deployable": false,
+    "local_boundary_search": {
+      "max_shift_sec": [1.0, 2.0, 3.0, 5.0],
+      "step_sec": 0.5,
+      "allow_trim": true,
+      "allow_expand": true,
+      "allow_split": false
+    },
+    "shot_boundary_snap": {
+      "frame_stride_sec": 0.5,
+      "min_shot_len_sec": 1.0,
+      "max_snap_shift_sec": [1.0, 2.0, 3.0, 5.0],
+      "deployable": false
+    },
+    "subshot_split_upper_bound": {
+      "enabled": true,
+      "max_components": [1, 2, 3],
+      "deployable": false
+    }
+  },
+  "signal_separability": {
+    "source": "BR-2 local evidence",
+    "labels": ["TRIM", "KEEP", "EXPAND"],
+    "per_side": true,
+    "metrics": ["auc_like_rank_score", "mean_gap", "effect_size", "confusion_at_existing_threshold"]
+  },
+  "decision_rules": {
+    "meaningful_oracle_precision_delta": 0.01,
+    "meaningful_oracle_recall_delta_min": -0.01,
+    "meaningful_oracle_f1_or_tiou_delta": 0.005,
+    "meaningful_signal_auc_like_min": 0.65
+  },
+  "safety": {
+    "no_hard": true,
+    "no_heldout": true,
+    "no_audit_tuning": true,
+    "no_qwen": true,
+    "no_vllm": true,
+    "no_training": true,
+    "does_not_create_deployable_method": true
+  }
+}
