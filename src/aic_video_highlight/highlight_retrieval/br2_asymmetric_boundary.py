@@ -330,13 +330,14 @@ def apply_asymmetric_boundary_action(
 
     right_delta = 0.0
     if right_action == "TRIM":
-        right_delta = min(max_trim, trim_margin + max(0.0, right.get("supported", 0) - 1) * 0.5)
-        right_delta = min(right_delta, original_duration / 2.0)
+        trim_amount = min(max_trim, trim_margin + max(0.0, right.get("supported", 0) - 1) * 0.5)
+        trim_amount = min(trim_amount, original_duration / 2.0)
+        right_delta = -trim_amount
     elif right_action == "EXPAND":
-        right_delta = -min(max_expand, expand_margin + max(0.0, right.get("supported", 0) - 1) * 0.5)
+        right_delta = min(max_expand, expand_margin + max(0.0, right.get("supported", 0) - 1) * 0.5)
 
     refined_start = original_start + left_delta
-    refined_end = original_end - right_delta
+    refined_end = original_end + right_delta
     refined_duration = refined_end - refined_start
     change_ratio = (abs(left_delta) + abs(right_delta)) / original_duration
     max_change = _finite(config["max_total_boundary_change_ratio"])
@@ -353,9 +354,9 @@ def apply_asymmetric_boundary_action(
         return identity("fallback_identity", "total_boundary_change_ratio_exceeds_cap")
     if refined_duration / original_duration < _finite(config["min_parent_overlap_ratio"]):
         return identity("fallback_identity", "parent_overlap_ratio_below_floor")
-    if left_delta > max_trim + 1e-9 or right_delta > max_trim + 1e-9:
+    if left_delta > max_trim + 1e-9 or -right_delta > max_trim + 1e-9:
         return identity("fallback_identity", "trim_exceeds_cap")
-    if -left_delta > max_expand + 1e-9 or -right_delta > max_expand + 1e-9:
+    if -left_delta > max_expand + 1e-9 or right_delta > max_expand + 1e-9:
         return identity("fallback_identity", "expand_exceeds_cap")
     if abs(left_delta) < 1e-9 and abs(right_delta) < 1e-9:
         return identity()

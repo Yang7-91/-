@@ -720,16 +720,16 @@ def _validate_br2_asymmetric(
     left_delta = _finite_number(detail.get("left_delta_sec"), "left_delta_sec")
     right_delta = _finite_number(detail.get("right_delta_sec"), "right_delta_sec")
     if abs((refined_start - original_start) - left_delta) > _IDENTITY_TOLERANCE_SEC or abs(
-        (original_end - refined_end) - right_delta
+        (refined_end - original_end) - right_delta
     ) > _IDENTITY_TOLERANCE_SEC:
         raise BoundaryRefinementError(
             f"BR-2 deltas inconsistent with refined interval for {video_id}/{candidate_id}"
         )
     max_trim = _finite_number(parameters.get("max_trim_each_side_sec"), "max_trim_each_side_sec")
     max_expand = _finite_number(parameters.get("max_expand_each_side_sec"), "max_expand_each_side_sec")
-    if left_delta > max_trim + _IDENTITY_TOLERANCE_SEC or right_delta > max_trim + _IDENTITY_TOLERANCE_SEC:
+    if left_delta > max_trim + _IDENTITY_TOLERANCE_SEC or -right_delta > max_trim + _IDENTITY_TOLERANCE_SEC:
         raise BoundaryRefinementError(f"BR-2 trim exceeds cap for {video_id}/{candidate_id}")
-    if -left_delta > max_expand + _IDENTITY_TOLERANCE_SEC or -right_delta > max_expand + _IDENTITY_TOLERANCE_SEC:
+    if -left_delta > max_expand + _IDENTITY_TOLERANCE_SEC or right_delta > max_expand + _IDENTITY_TOLERANCE_SEC:
         raise BoundaryRefinementError(f"BR-2 expand exceeds cap for {video_id}/{candidate_id}")
     original_duration = original_end - original_start
     refined_duration = refined_end - refined_start
