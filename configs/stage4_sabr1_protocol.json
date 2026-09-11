@@ -47,5 +47,60 @@
     "no_new_zero_recall": true,
     "precision_delta_target": 0.01,
     "f1_or_tiou_delta_target": 0.005
+  },
+  "boundary_proposal": {
+    "phase": "SABR-1.1",
+    "changes_boundaries": true,
+    "allowed_roles": ["dev_tune"],
+    "forbidden_roles": ["hard_stress", "audit_diagnostic", "heldout"],
+    "identity_fallback": {
+      "max_candidate_duration_sec": 6.0,
+      "short_duration_margin_sec": 2.0,
+      "min_effective_bins": 4,
+      "constant_saliency_epsilon": 1e-9
+    },
+    "configs": {
+      "SABR-1.1-C1": {
+        "bin_sec": 1.0,
+        "core_quantile": 0.80,
+        "low_quantile": 0.35,
+        "margin_sec": 1.0,
+        "max_trim_each_side_sec": 3.0,
+        "max_total_shrink_ratio": 0.25,
+        "min_parent_overlap_ratio": 0.75,
+        "min_refined_duration_sec": 5.0,
+        "min_peak_prominence": 0.15
+      },
+      "SABR-1.1-C2": {
+        "bin_sec": 1.0,
+        "core_quantile": 0.75,
+        "low_quantile": 0.30,
+        "margin_sec": 1.0,
+        "max_trim_each_side_sec": 4.0,
+        "max_total_shrink_ratio": 0.30,
+        "min_parent_overlap_ratio": 0.70,
+        "min_refined_duration_sec": 4.0,
+        "min_peak_prominence": 0.12
+      },
+      "SABR-1.1-C3": {
+        "bin_sec": 2.0,
+        "core_quantile": 0.75,
+        "low_quantile": 0.30,
+        "margin_sec": 2.0,
+        "max_trim_each_side_sec": 4.0,
+        "max_total_shrink_ratio": 0.30,
+        "min_parent_overlap_ratio": 0.70,
+        "min_refined_duration_sec": 6.0,
+        "min_peak_prominence": 0.12
+      }
+    },
+    "promotion_gate": {
+      "recall_delta_min": -0.01,
+      "new_zero_recall_allowed": 0,
+      "new_recall_lt_0_5_allowed": 1,
+      "precision_delta_min": 0.01,
+      "f1_or_tiou_delta_min": 0.005,
+      "coverage_delta_max": -0.01
+    }
   }
 }
