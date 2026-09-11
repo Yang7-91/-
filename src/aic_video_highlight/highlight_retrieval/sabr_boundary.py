@@ -279,4 +279,8 @@ def build_sabr11_result(
         "decision_counts": decision_counts,
         "records": records,
     }
+    from .boundary_refinement import _check_result_leakage
+
+    _check_result_leakage(result)
+    result["boundary_refinement_semantic_hash"] = semantic_sha256(result)
     return result
