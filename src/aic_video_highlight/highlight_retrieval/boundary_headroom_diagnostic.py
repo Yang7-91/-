@@ -412,7 +412,11 @@ def _greedy_over_variant_fn(
     base_metrics = evaluate_video_merged(segments, references)
 
     def video_metrics(trial: list[tuple[float, float]]) -> dict[str, float]:
-        return evaluate_video_merged(trial, references)
+        metrics = evaluate_video_merged(trial, references)
+        metrics["coverage_ratio"] = (
+            metrics["prediction_duration_sec"] / video_duration if video_duration > _EPS else 0.0
+        )
+        return metrics
 
     current = list(segments)
     actions: list[dict[str, Any]] = []
