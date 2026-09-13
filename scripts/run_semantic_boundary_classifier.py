@@ -195,6 +195,7 @@ def _cmd_classify(args) -> int:
         clip_path = clip_dir / f"{sample.side}_{sample.sample_id.replace('|', '_')}.mp4"
         error = None
         payload = None
+        raw_response = None
         try:
             extract_video_clip(
                 video_path,
@@ -215,7 +216,9 @@ def _cmd_classify(args) -> int:
                     max_new_tokens=int(protocol["model"]["max_tokens"]),
                     temperature=float(protocol["model"]["temperature"]),
                     coarse_fps=float(protocol["local_context"]["fps"]),
+                    enable_thinking=bool(protocol["model"].get("enable_thinking", False)),
                 )
+                raw_response = (response.content or "")[:400]
                 payload = parse_semantic_boundary_response(response.content)
             except SemanticBoundaryParseError as exc:
                 error = f"parse_error: {exc}"
@@ -233,6 +236,7 @@ def _cmd_classify(args) -> int:
                 "rationale_short": payload["rationale_short"] if payload else None,
                 "parse_ok": payload is not None,
                 "error": error,
+                "raw_response": raw_response,
             }
         )
     write_json_lines(args.output, predictions)
