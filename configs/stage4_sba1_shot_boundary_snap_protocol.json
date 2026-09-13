@@ -1,0 +1,92 @@
+{
+  "schema_version": "aic.stage4.sba1_shot_boundary_snap/v1",
+  "stage": "Stage 4-new",
+  "method": "SBA-1",
+  "name": "Conservative Shot-Boundary Snap Deployable",
+  "dataset": "aic_highlight_dev_v1.1",
+  "role": "dev_tune",
+  "purpose": "dev_only_deployable_boundary_refinement_experiment",
+  "motivation": {
+    "bhd01_shot_snap_oracle_headroom": true,
+    "sbc0_semantic_classifier_actionable": false,
+    "reason": "Try a low-cost deployable shot-boundary snap before closing Stage 4 temporal."
+  },
+  "frozen_upstream": {
+    "source": "Stage 4.2 cache_build_a",
+    "heldout_access": false,
+    "hard_access": false,
+    "audit_access_for_tuning": false,
+    "qwen_calls_allowed": false,
+    "vllm_calls_allowed": false,
+    "training_allowed": false
+  },
+  "shot_detection": {
+    "method": "opencv_content_difference",
+    "frame_stride_sec": 0.5,
+    "min_shot_len_sec": 1.0,
+    "threshold_mode": "robust_median_mad",
+    "deterministic": true
+  },
+  "principles": {
+    "deployable": true,
+    "uses_weak_reference_for_decision": false,
+    "left_right_independent": true,
+    "identity_fallback_required": true,
+    "no_model_calls": true
+  },
+  "configs": {
+    "SBA-1-C1": {
+      "snap_window_sec": 1.0,
+      "allow_trim": true,
+      "allow_expand": true,
+      "prefer_nearest": true,
+      "max_trim_each_side_sec": 1.0,
+      "max_expand_each_side_sec": 1.0,
+      "max_total_boundary_change_ratio": 0.15,
+      "min_parent_overlap_ratio": 0.85,
+      "min_refined_duration_sec": 5.0,
+      "min_candidate_duration_sec": 6.0
+    },
+    "SBA-1-C2": {
+      "snap_window_sec": 2.0,
+      "allow_trim": true,
+      "allow_expand": true,
+      "prefer_inner_when_tie": true,
+      "max_trim_each_side_sec": 2.0,
+      "max_expand_each_side_sec": 1.5,
+      "max_total_boundary_change_ratio": 0.20,
+      "min_parent_overlap_ratio": 0.80,
+      "min_refined_duration_sec": 5.0,
+      "min_candidate_duration_sec": 8.0
+    },
+    "SBA-1-C3": {
+      "snap_window_sec": 3.0,
+      "allow_trim": true,
+      "allow_expand": false,
+      "inward_only": true,
+      "max_trim_each_side_sec": 2.0,
+      "max_expand_each_side_sec": 0.0,
+      "max_total_boundary_change_ratio": 0.20,
+      "min_parent_overlap_ratio": 0.80,
+      "min_refined_duration_sec": 5.0,
+      "min_candidate_duration_sec": 10.0
+    }
+  },
+  "promotion_gate": {
+    "recall_delta_min": -0.01,
+    "new_zero_recall_allowed": 0,
+    "new_recall_lt_0_5_allowed": 1,
+    "precision_delta_min": 0.005,
+    "f1_or_tiou_delta_min": 0.003,
+    "coverage_delta_max": 0.005
+  },
+  "safety": {
+    "no_hard": true,
+    "no_heldout": true,
+    "no_audit_tuning": true,
+    "no_qwen": true,
+    "no_vllm": true,
+    "no_training": true,
+    "does_not_modify_cache": true
+  }
+}
