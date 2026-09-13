@@ -1,0 +1,70 @@
+{
+  "schema_version": "aic.stage4.sbc0_semantic_boundary_classifier_probe/v1",
+  "stage": "Stage 4-new",
+  "method": "SBC-0",
+  "name": "Semantic Boundary Classifier Separability Probe",
+  "dataset": "aic_highlight_dev_v1.1",
+  "role": "dev_tune",
+  "purpose": "diagnostic_only_not_deployable",
+  "uses_oracle_labels": true,
+  "oracle_source": "BHD-0.1 boundary_oracle_labels.jsonl",
+  "frozen_upstream": {
+    "source": "Stage 4.2 cache_build_a",
+    "heldout_access": false,
+    "hard_access": false,
+    "audit_access_for_tuning": false,
+    "training_allowed": false
+  },
+  "model": {
+    "allowed": true,
+    "name": "Qwen/Qwen3.5-4B",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_tokens": 512,
+    "schema_required": true
+  },
+  "sampling": {
+    "unit": "boundary_side",
+    "sides": ["left", "right"],
+    "labels": ["TRIM", "KEEP", "EXPAND"],
+    "max_samples_total": 180,
+    "max_per_label_per_side": 30,
+    "stratified_by_oracle_label": true,
+    "deterministic_seed": 20260911
+  },
+  "local_context": {
+    "boundary_window_sec": 4.0,
+    "clip_start": "boundary - 4s",
+    "clip_end": "boundary + 4s",
+    "fps": 2.0,
+    "include_candidate_core_thumbnail": true,
+    "include_text_metadata": true
+  },
+  "prompt": {
+    "version": "sbc0_v1",
+    "fixed_before_run": true,
+    "no_iterative_prompt_tuning": true,
+    "asks_for": ["action", "confidence", "rationale_short"]
+  },
+  "metrics": {
+    "accuracy": true,
+    "macro_f1": true,
+    "per_class_precision_recall": true,
+    "auc_like_rank_score": true,
+    "confusion_matrix": true,
+    "schema_success_rate": true
+  },
+  "decision_rules": {
+    "meaningful_auc_like_min": 0.65,
+    "meaningful_macro_f1_min": 0.45,
+    "schema_success_rate_min": 0.95
+  },
+  "safety": {
+    "no_hard": true,
+    "no_heldout": true,
+    "no_audit_tuning": true,
+    "no_training": true,
+    "does_not_create_deployable_method": true,
+    "does_not_modify_candidates": true
+  }
+}
